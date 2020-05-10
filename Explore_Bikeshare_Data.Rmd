@@ -65,6 +65,7 @@ str(chi)
 summary(chi)
 ```
 Udacity GitHub Change 1: View all data sets
+Udacity GitHub Change 2: Change heading of plot showing the Most Popular Trips per City
 
 ## Preparations (Joining the Data Sets)
 
