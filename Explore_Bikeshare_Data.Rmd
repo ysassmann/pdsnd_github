@@ -1,0 +1,523 @@
+---
+title: "Udacity Nanodegree Programming for Data Science with R"
+output: html_notebook
+author: Yannik Sassmann
+---
+
+#  Project 2: Explore Bikeshare Data
+
+## Get Ready
+```{r}
+# Set work directory and load libraries
+setwd("/Users/yanniksassmann/Desktop/Data_Science/R/Udacity_Nanodegree_Data_Science_with_R/R_Project")
+
+install.packages("plyr")
+install.packages("dplyr")
+install.packages("ggpubr")
+install.packages("tidyr")
+install.packages("ggplot2")
+install.packages("lubridate")
+install.packages("gridExtra")
+library(plyr)
+library(dplyr)
+library(ggpubr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+library(gridExtra)
+```
+
+### Load data sets
+```{r}
+# Load data sets
+ny <- read.csv("new_york_city.csv")
+wash <- read.csv("washington.csv")
+chi <- read.csv("chicago.csv")
+```
+
+### Inspect the New York City data set
+```{r}
+# Inspect the New York City data set
+head(ny)
+dim(ny)
+colnames(ny)
+str(ny)
+summary(ny)
+```
+
+### Inspect the Washington D.C. data set
+```{r}
+# Inspect the Washington D.C. data set
+head(wash)
+dim(wash)
+colnames(wash)
+str(wash)
+summary(wash)
+```
+
+### Inspect the Chicago data set
+```{r}
+# Inspect the Chicago data set
+head(chi)
+dim(chi)
+colnames(chi)
+str(chi)
+summary(chi)
+```
+
+
+## Preparations (Joining the Data Sets)
+
+### Before joining the data sets, I include the variable city for each of the original data sets in order to be able to identify which city the observations belong to later on. In addition, I also want to exclude all observations with missing values.
+
+### Built function to include variable city and exclude all observations with missing values
+```{r}
+# Built function to include variable city and exclude all observations with missing values
+city_omit <- function(x) {
+  city_name <- deparse(substitute(x))
+  x%>%
+  mutate(city = city_name)%>%
+  na.omit()
+}
+```
+
+### Use function to include variable city and exclude all observations with missing values for each city
+```{r}
+# Use function to include variable city and exclude all observations with missing values for each city
+ny <- city_omit(ny)
+wash <- city_omit(wash)
+chi <- city_omit(chi)
+```
+
+### Check results of the function
+```{r}
+# Check results of the function
+head(ny)
+dim(ny)
+head(wash)
+dim(wash)
+head(chi)
+dim(chi)
+```
+
+### Use plyr's rbind.fill() function to join all three data sets (Union)
+```{r}
+# Use plyr's rbind.fill() function to join all three data sets (Union)
+bikeshare <- rbind.fill(ny, wash, chi)
+head(bikeshare)
+tail(bikeshare)
+```
+### Build function to check if the sizes of joined data sets are equal
+```{r}
+### Build function to check if sizes of joined data sets are equal
+check <- function(x, y) {
+  ifelse(x == y, print("The size of the data sets is equal"), print("Error"))
+}
+```
+
+### Quickly check if the size of the joined data set is equal to the sum of the individual data sets
+```{r}
+# Quickly check if the size of the joined data set is equal to the sum of the individual data sets
+x1 <- nrow(bikeshare)
+y1 <- nrow(ny) + nrow(wash) + nrow(chi)
+check(x1, y1)
+```
+
+### Add id column to uniquely identify each observation
+```{r}
+# Add id column to uniquely identify each observation
+bikeshare$id <- seq.int(nrow(bikeshare))
+head(bikeshare)
+tail(bikeshare)
+```
+
+
+# Question 1
+## Which city is using the bikeshare service for the longest trip duration on average? In other words, what is the average travel time for users in different cities?
+
+### Due to the fact, that the variable Trip.Duration is declared in seconds, create a new variable that transforms Trip.Duration from seconds to minutes
+```{r}
+# Due to the fact, that the variable Trip.Duration is declared in seconds, create a new variable that transforms
+# Trip.Duration from seconds to minutes
+bikeshare$minutes <-  round((bikeshare$Trip.Duration / 60), 2)
+head(bikeshare)
+```
+
+### Create plot showing the distribution of trip durations in minutes for each of the three cities, as well as their mean and median
+```{r}
+# Create plot showing the distribution of trip durations in minutes for each of the three cities, as well as their mean and median
+ggplot(aes(x=minutes), data=bikeshare) +
+  geom_histogram(binwidth = 0.5, color = "white", fill = "grey26") +
+  coord_cartesian(xlim=c(0, quantile(bikeshare$minutes, 0.95))) + # Omit top 5% outliers
+  scale_x_continuous(breaks = seq(0, 45, 5)) +
+  labs(title="Distribution of Trip Duration (in Minutes) per City", caption = "Median = Blue \n Mean = Red") +
+  xlab("Trip Duration in Minutes") + ylab("Frequency") +
+  facet_wrap(~city, nrow = 3, scales="free_y", labeller = as_labeller(c(chi = "Chicago", ny = "New York", wash = "Washington"))) +
+  stat_central_tendency(type = "mean", color = "red", show.legend = TRUE) +
+  stat_central_tendency(type = "median", color = "blue", show.legend = TRUE)
+```
+
+### Create boxplot to see how long the majority of customers uses the bikesharing serivce
+```{r}
+# Create a boxplot to see how long the majority of customers uses the bikesharing service
+ggplot(aes(x=minutes), data=bikeshare) +
+  geom_boxplot() +
+  coord_cartesian(xlim=c(0, quantile(bikeshare$minutes, 0.95))) + # Omit top 5% outliers
+  xlab("Trip Duration in Minutes") +
+  scale_x_continuous(breaks=seq(0, 45, 5)) +
+  facet_wrap(~city, nrow = 3, labeller = as_labeller(c(chi = "Chicago", ny = "New York", wash = "Washington")))
+```
+
+
+### Calculate summary statistcs
+```{r}
+# Calculate summary statistcs
+bikeshare_summary <- bikeshare%>%
+  group_by(city)%>%
+  summarise(mean = mean(minutes),
+            median = median(minutes),
+            min(minutes),
+            max(minutes),
+            observations = length(minutes))
+bikeshare_summary
+```
+
+### Answer: Customers in Washington D.C. use the bikesharing service for the longest trip duration, namely for roughly 20min and 30 seconds on average. In comparision, customers in New York City use the service on average 13min and 15 seconds, while people in Chiacgo take the shortest trips with 11min and 30 seconds.
+
+### The median for each of the cities is less spread out. The median customer uses the service almost equally in Chicago and New York with a little less than 10 minutes, while the median customer in Washington still uses the service for roughly 12 minutes.
+
+### The difference between mean and median can be explained, due to the fact that more customers in Washington use the bike service for longer trips, as is visible by the longer tail in the distribution.
+
+### The boxplots shows that the majority of customers (25th to 75 percentile) in New York and Chicago use the bike sharing service for a trip duration between 5 and 17 minutes, while in Washington D.C. the majority of customers use the service between 7 and 21 minutes.
+
+
+
+# Question 2
+## Does age have an effect on the duration of a costumer's trip?
+
+### Create a variable age using the existing variable Birth.Year
+```{r}
+# Create a variable age using the existing variable Birth.Year
+bikeshare$age <- 2020 - bikeshare$Birth.Year
+head(bikeshare)
+```
+
+### Create new data frame without missing values for Washington
+```{r}
+# Create new data frame without missing values for Washington
+bikeshare_age <- bikeshare%>%
+  na.omit()
+head(bikeshare_age)
+```
+
+### Create scatter plot showing the correlation between age and trip duration in minutes
+```{r}
+# Create scatter plot showing the correlation between age and trip duration in minutes
+ggplot(aes(x=age, y=minutes, color=city), data=bikeshare_age) +
+  geom_jitter() +
+  geom_smooth(method = "lm", color = "black", linetype = "dashed") +
+  ggtitle("Correlation between Customer Age and Trip Duration") +
+  coord_cartesian(xlim=c(15, quantile(bikeshare_age$age, 0.9995)),
+                  ylim=c(0, quantile(bikeshare_age$minutes, 0.9995))) +
+  scale_x_continuous(breaks=seq(15, 100, 5)) +
+  xlab("Age") + ylab("Trip Duration (in Minutes)") +
+  scale_color_discrete(name = "City", labels = c("Chicago", "New York"))
+```
+
+### Calculate actual correlation
+```{r}
+# Calculate actual correlation
+round(cor(bikeshare_age$age, bikeshare_age$minutes), 5)
+```
+
+### Answer: There seems to be no correlation between the age of customers and their trip duration. Contrary to popular belief, old customers take as long trips as young customers do. Hence trip duration doesn't decrease with age.
+
+### The actual correlation coefficient for the two variables trip duration (in minutes) and age is close to 0.
+
+### There also seems to be no difference between the cities of Chicago and New York. These are the only two cities for which data is available.
+
+
+
+# Question 3
+## What is the most common hour of the day for customers to use the bikesharing serivce?
+
+### Extract both the hour in which a trip started, as well as ended from Start.Time and End.Time respectively
+```{r}
+# Extract both the hour in which a trip started, as well as ended from Start.Time and End.Time respectively
+bikeshare$hour_start <- hour(bikeshare$Start.Time)
+bikeshare$hour_end <- hour(bikeshare$End.Time)
+head(bikeshare)
+```
+
+### Create histogram for tje start of the trip to see when most customers start their trips during the day
+```{r}
+# Create histogram for tje start of the trip to see when most customers start their trips during the day
+q3_1 <- ggplot(aes(hour_start), data=bikeshare) +
+  geom_histogram(binwidth = 1, color = "white", fill = "blue") +
+  scale_x_continuous(breaks=seq(0, 23, 1)) +
+  theme(axis.text=element_text(size=6)) +
+  xlab("Hour of the Day") + ylab("Number of Started Trips") +
+  facet_wrap(~city, nrow = 3, scales="free_y", labeller = as_labeller(c(chi = "Chicago", ny = "New York", wash = "Washington")))
+q3_1
+```
+
+### Create histogram for the end of the trip to see when most customers end their trips at any given day
+```{r}
+# Create histogram for the end of the trip to see when most customers end their trips at any given day
+q3_2 <- ggplot(aes(hour_end), data=bikeshare) +
+  geom_histogram(binwidth = 1, color = "white", fill = "green") +
+  scale_x_continuous(breaks=seq(0, 23, 1)) +
+  theme(axis.text=element_text(size=6)) +
+  xlab("Hour of the Day") + ylab("Number of Ended Trips") +
+  facet_wrap(~city, nrow = 3, scales="free_y", labeller = as_labeller(c(chi = "Chicago", ny = "New York", wash = "Washington")))
+q3_2
+```
+
+### Combine both plots to see the busiest times for the use of the bikeshare service per city and hour of the day
+```{r}
+# Combine both plots to see the busiest times for the use of the bikeshare service per city and hour of the day
+grid.arrange(q3_1, q3_2, ncol = 2)
+```
+
+### Combine both histogram in one plot to view the busiest time combined
+```{r}
+# Combine both histogram in one plot to view the busiest time combined
+ggplot(aes(hour_start), data=bikeshare) +
+  geom_histogram(binwidth = 1, color = "white", fill = "blue", alpha = 0.4, position="identity") +
+  geom_histogram(aes(x=hour_end), data=bikeshare, binwidth = 1, color = "white", fill = "green", alpha = 0.4, position="identity") +
+  scale_x_continuous(breaks=seq(0, 23, 1)) +
+  xlab("Hour of the Day") + ylab("Number of Trips") +
+  facet_wrap(~city, nrow = 3, scales="free_y", labeller = as_labeller(c(chi = "Chicago", ny = "New York", wash = "Washington")))
+```
+
+### Count the number of trips that STARTED in each hour of the day by city
+```{r}
+# Count the number of trips that STARTED in each hour of the day by city
+hours_start <- bikeshare%>%
+  group_by(city, hour_start)%>%
+  summarise(n_start = length(id))
+hours_start
+```
+
+### Extract the hour of the day with the maximum amount of trips STARTED
+```{r}
+# Extract the hour of the day with the maximum amount of trips STARTED
+max_start_hours <- hours_start%>%
+  group_by(city)%>%
+  filter(n_start==max(n_start))
+max_start_hours
+```
+
+### Count the number of trips that END in each hour of the day by city
+```{r}
+# Count the number of trips that END in each hour of the day by city
+hours_end <- bikeshare%>%
+  group_by(city, hour_end)%>%
+  summarise(n_end = length(id))
+hours_end
+```
+
+### Extract the hour of the day, where most of the trips END
+```{r}
+# Extract the hour of the day, where most of the trips END
+max_end_hours <- hours_end%>%
+  group_by(city)%>%
+  filter(n_end==max(n_end))
+max_end_hours
+```
+
+### Combine data sets containing the maximum values to provide summary statistics
+```{r}
+# Combine data sets containing the maximum values to provide summary statistics
+max_hours <- max_start_hours%>%
+  full_join(max_end_hours, by = "city")
+max_hours
+```
+
+### Answer: The hour of the day, when the bikesharing service is most used, is in the afternoon for both Chicago and New York City. In both cities the busiest hour of the day is between 5pm and 6pm with roughly 5050 trips starting and ending in New York City and roughly 900 in Chicago.
+
+### In comparision, customers in Washington D.C. are more inclined to use the bikesharing service in the mornings with 8am being prime time with almost 10.000 trips.
+
+
+
+# Question 4
+## What is the most common trip from start to end by city and what is the average travel time on this trip?
+
+## Q4.1 - First Part: Find most popular starting station per city
+
+### Sum up all number of times a station has been the starting point of a trip in each city and renaming the newly created variable
+```{r}
+# Sum up all number of times a station has been the starting point of a trip in each city and renaming the newly created variable
+count_start <- ddply(bikeshare, .(Start.Station, city), nrow)
+count_start <- count_start%>%
+  rename(n = V1)
+count_start
+```
+
+### Convert the variable n (number of trips that started at a station) to numeric variable for easier handling
+```{r}
+# Convert the variable n (number of trips that started at a station) to numeric variable for easier handling
+count_start$n <- as.double(as.character(count_start$n))
+count_start$n <- as.numeric(count_start$n)
+str(count_start)
+```
+
+### Convert the variable Start.Station from factor to character for easier handling
+```{r}
+# Convert the variable Start.Station from factor to character for easier handling
+count_start$Start.Station <- as.character(as.factor(count_start$Start.Station))
+str(count_start)
+```
+
+### Get the name of the stations, where most of the trips have started for each of the cities
+```{r}
+# Get the name of the stations, where most of the trips have started for each of the cities
+top_start_stations <- count_start%>%
+  group_by(city)%>%
+  filter(n==max(n))%>%
+  ungroup()
+top_start_stations
+```
+
+### Reorder data frame in descending order
+```{r}
+# Reorder data frame in descending order
+top_start_stations <- top_start_stations%>%
+  arrange(desc(n))%>%
+  mutate(city = factor(city, levels=c("wash", "ny", "chi")))
+top_start_stations
+```
+
+### Create plot with the top start stations per city
+```{r}
+# Create plot with the top start stations per city
+ggplot(aes(x=city, y=n, label=Start.Station), data=top_start_stations) +
+  geom_col(color="black", fill="blue") +
+  geom_text(size=3, color = "white", position = position_stack(vjust = 0.7)) +
+  ggtitle("Most Popular Start Station By City") +
+  scale_x_discrete(name = "City", labels = c("Washington", "New York City", "Chicago")) +
+  ylab("Number of trips started at station")
+```
+
+
+## Q4.2 - Second Part: Find most popular end stations per city, given trips have started at the most popular starting stations
+
+### Subset original bikeshare data set to only include observations from the most popular starting stations per city
+```{r}
+# Subset original bikeshare data set to only include observations from the most popular starting stations per city
+count_end <- bikeshare%>%
+  filter(Start.Station %in% c("Columbus Circle / Union Station", "Pershing Square North", "Clinton St & Washington Blvd"))
+count_end
+```
+
+### Quickly check if number of started trips is equal in both the top_start_stations data set and the newly created count_end data set by using the function built in the preparation part of the exercise
+```{r}
+# Quickly check if number of started trips is equal in both the top_start_stations data set and the newly created count_end data set by using the function built in the prepration part of the exercise
+x2 <- nrow(count_end)
+y2 <- sum(top_start_stations$n)
+check(x2, y2)
+```
+
+### Sum up the number of times a station has been the end point of a trip given one of the top starting stations was the starting point of a trip for each of the city
+```{r}
+# Sum up the number of times a station has been the end point of a trip given one of the top starting stations was the starting point
+# of a trip for each of the city
+count_end <- ddply(count_end, .(End.Station, city, Start.Station), nrow)
+count_end <- count_end%>%
+  rename(n = V1)
+count_end
+```
+
+### Convert the variable n (number of trips that ended at a station) to numeric variable for easier handling
+```{r}
+# Convert the variable n (number of trips that ended at a station) to numeric variable for easier handling
+count_end$n <- as.double(as.character(count_end$n))
+count_end$n <- as.numeric(count_end$n)
+str(count_end)
+```
+
+### Convert the variable End.Station from factor to character for easier handling
+```{r}
+# Convert the variable End.Station from factor to character for easier handling
+count_end$End.Station <- as.character(as.factor(count_end$End.Station))
+str(count_end)
+```
+
+### Get the counts of the stations, where most of the trips ended, given they started at the most popular starting station for each city
+```{r}
+# Get the counts of the stations, where most of the trips ended, given they started at the most popular starting station for each city
+pop_stations_end <- count_end%>%
+  group_by(city, Start.Station)%>%
+  summarise(max = max(n))
+pop_stations_end
+```
+
+### # Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station for each city
+```{r}
+# Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station 
+# for each city
+ny_end_station <- count_end%>%
+  filter(city == "ny" & n == 24)
+ny_end_station
+
+wash_end_station <- count_end%>%
+  filter(city == "wash" & n == 107)
+wash_end_station
+
+chi_end_station <- count_end%>%
+  filter(city == "chi" & n == 11)
+chi_end_station
+```
+
+### Combine individual results from each city to a data frame showing the most popular trips per city
+```{r}
+# Combine individual results from each city to a data frame showing the most popular trips per city
+top_trips <- rbind.fill(ny_end_station, wash_end_station, chi_end_station)%>%
+  arrange(desc(n))%>%
+  mutate(city = factor(city, levels=c("wash", "ny", "chi")))%>%
+  rename(City = city, NumberOfTrips = n)
+top_trips
+```
+
+### Rearrange column order to increase readability of data frame
+```{r}
+# Rearrange column order to increase readability of data frame
+col_order <- c("City", "Start.Station", "End.Station", "NumberOfTrips")
+top_trips <- top_trips[, col_order]
+top_trips
+```
+
+### Combine Start.Station and End.Station to Trip variable
+```{r}
+# Combine Start.Station and End.Station to Trip variable
+top_trips <- transform(top_trips, Trip = paste(Start.Station, End.Station, sep = " - "))
+top_trips
+```
+
+### Create plot showing the most popular trips per city
+```{r}
+# Create plot showing the most popular trips per city
+ggplot(aes(x=City, y=NumberOfTrips, color=Trip), data=top_trips) +
+  geom_col(color="black", fill="blue") +
+  ggtitle("Most Popular Trips By City") +
+  geom_text(label = top_trips$Start.Station, size=3, color = "white", position = position_stack(vjust = 0.7)) +
+  geom_text(label = "-", size=3, color = "white", position = position_stack(vjust = 0.6)) +
+  geom_text(label = top_trips$End.Station, size=3, color = "white", position = position_stack(vjust = 0.4)) +
+  scale_y_continuous(breaks=seq(0, 120, 10)) +
+  scale_x_discrete(name = "City", labels = c("Washington", "New York City", "Chicago")) +
+  ylab("Number of Trips")
+```
+
+### Provide summary statistics
+```{r}
+# Provide summary statistics
+top_trips
+```
+
+### Answer: The most popular trip for Washington D.C. is the trip from Columbus Circle / Union Station to 8th & F St NE, which was taken 107 times during the observation period. The most popular trip in New York City was between Pershing Square North and W 33 St & 7 Ave with 24 trips and in Chicago the most popular trip was from Clinton St & Washington Blvd to Michigan Ave & Washington St with 11 trips in total.
+
+
+
+
+
+
