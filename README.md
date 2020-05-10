@@ -1,15 +1,14 @@
 ### Date created
-Include the date you created this project and README file.
+May, 10th 2020
 
 ### Project Title
-Replace the Project Title
+Explore Bikesharing Data
 
 ### Description
-Describe what your project is about and what it does
+Exploratory data analysis of bikesharing Data in New York City, Chicago and Washington D.C.
 
 ### Files used
-Include the files used
+Used data sets provided by Udacity
 
 ### Credits
-It's important to give proper credit. Add links to any repo that inspired you or blogposts you consulted.
-
+[Udacity Nanodegree: Programming for Data Science with R] (https://www.udacity.com/course/programming-for-data-science-nanodegree--nd104?utm_source=gsem_brand&utm_medium=ads_n&utm_campaign=8301633099_c&utm_term=85164905003&utm_keyword=%2Budacity%20%2Bprogramming%20%2Bdata%20%2Bscience_b&gclid=EAIaIQobChMI0My2pcSp6QIVFqp3Ch26YAAoEAAYASAAEgIwf_D_BwE)
