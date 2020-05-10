@@ -454,7 +454,7 @@ pop_stations_end
 
 ### # Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station for each city
 ```{r}
-# Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station 
+# Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station
 # for each city
 ny_end_station <- count_end%>%
   filter(city == "ny" & n == 24)
@@ -518,6 +518,4 @@ top_trips
 
 
 
-
-
-
+### Many thank for reading through my project
