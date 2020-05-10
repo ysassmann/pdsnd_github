@@ -64,7 +64,7 @@ colnames(chi)
 str(chi)
 summary(chi)
 ```
-
+Udacity GitHub Change 1: View all data sets
 
 ## Preparations (Joining the Data Sets)
 
@@ -454,7 +454,7 @@ pop_stations_end
 
 ### # Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station for each city
 ```{r}
-# Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station 
+# Get the name of the stations, where most of the trips have ended, given they started at the most popular starting station
 # for each city
 ny_end_station <- count_end%>%
   filter(city == "ny" & n == 24)
@@ -515,9 +515,3 @@ top_trips
 ```
 
 ### Answer: The most popular trip for Washington D.C. is the trip from Columbus Circle / Union Station to 8th & F St NE, which was taken 107 times during the observation period. The most popular trip in New York City was between Pershing Square North and W 33 St & 7 Ave with 24 trips and in Chicago the most popular trip was from Clinton St & Washington Blvd to Michigan Ave & Washington St with 11 trips in total.
-
-
-
-
-
-
